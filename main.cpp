@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:53:55 by crios             #+#    #+#             */
-/*   Updated: 2025/06/30 10:59:16 by crios            ###   ########.fr       */
+/*   Updated: 2025/06/30 11:00:23 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,8 +28,6 @@ int main(int argc, char **argv)
         std::cerr << "Invalid port number." << std::endl;
         return 1;
     }
-
-
     
     return 0;
 }
