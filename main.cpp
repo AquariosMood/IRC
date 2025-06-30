@@ -6,28 +6,35 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:53:55 by crios             #+#    #+#             */
-/*   Updated: 2025/06/30 11:00:23 by crios            ###   ########.fr       */
+/*   Updated: 2025/06/30 13:29:18 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "irc.hpp"
 
-int main(int argc, char **argv)
+void Server::ClearClients(int fd){ //-> clear the clients
+	for(size_t i = 0; i < fds.size(); i++){ //-> remove the client from the pollfd
+		if (fds[i].fd == fd)
+			{fds.erase(fds.begin() + i); break;}
+	}
+	for(size_t i = 0; i < clients.size(); i++){ //-> remove the client from the vector of clients
+		if (clients[i].getFd() == fd)
+			{clients.erase(clients.begin() + i); break;}
+	}
+}
+
+int main()
 {
-    if (argc != 3)
-    {
-        std::cerr << "Usage: " << argv[0] << " <server> <port>" << std::endl;
-        return 1;
-    }
-
-    std::string server = argv[1];
-    int port = std::atoi(argv[2]);
-
-    if (port <= 0 || port > 65535)
-    {
-        std::cerr << "Invalid port number." << std::endl;
-        return 1;
-    }
-    
-    return 0;
+	Server ser;
+	std::cout << "---- SERVER ----" << std::endl;
+	try{
+		signal(SIGINT, Server::SignalHandler); //-> catch the signal (ctrl + c)
+		signal(SIGQUIT, Server::SignalHandler); //-> catch the signal (ctrl + \)
+		ser.ServerInit(); //-> initialize the server
+	}
+	catch(const std::exception& e){
+		ser.CloseFds(); //-> close the file descriptors
+		std::cerr << e.what() << std::endl;
+	}
+	std::cout << "The Server Closed!" << std::endl;
 }

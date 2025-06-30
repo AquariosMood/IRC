@@ -7,6 +7,7 @@ CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
 # Sources et objets
 SRCS = main.cpp \
+	   socket.cpp \
 
 OBJS = $(SRCS:.cpp=.o)
 

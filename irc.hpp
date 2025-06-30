@@ -6,13 +6,23 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:52:51 by crios             #+#    #+#             */
-/*   Updated: 2025/06/30 12:25:46 by crios            ###   ########.fr       */
+/*   Updated: 2025/06/30 13:29:12 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
+#ifndef IRC_HPP
+#define IRC_HPP
 
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <cstdlib>
 #include <poll.h>
 
@@ -52,13 +62,4 @@ class Server {
         void ClearClients(int fd); // Method to clear the list of clients
 };
 
-void Server::ClearClients(int fd){ //-> clear the clients
-	for(size_t i = 0; i < fds.size(); i++){ //-> remove the client from the pollfd
-		if (fds[i].fd == fd)
-			{fds.erase(fds.begin() + i); break;}
-	}
-	for(size_t i = 0; i < clients.size(); i++){ //-> remove the client from the vector of clients
-		if (clients[i].getFd() == fd)
-			{clients.erase(clients.begin() + i); break;}
-	}
-}
+#endif
