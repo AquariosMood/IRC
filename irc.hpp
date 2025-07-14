@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:52:51 by crios             #+#    #+#             */
-/*   Updated: 2025/06/30 13:29:12 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/14 18:16:05 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@
 #include <signal.h>
 #include <cstdlib>
 #include <poll.h>
-
+#define BUFFER_SIZE 1024 // Define a buffer size for receiving data
 
 // Une classe client
 class Client {
@@ -55,6 +55,7 @@ class Server {
         void SerSocket(); // Method to create the server socket
         void AcceptNewClient(); // Method to accept new clients
         void ReceiveNewData(int fd); // Method to receive data from clients
+        void SendData(int fd); // Method to send data to clients
 
         static void SignalHandler(int signum); // Static method to handle signals
 

@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/06/30 13:25:16 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/14 18:42:58 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,7 @@ void Server::SerSocket()
     add.sin_port = htons(this->Port); // -> Set the port number, converting to network byte order
     add.sin_addr.s_addr = INADDR_ANY; // -> Set the address to any available interface
     
+    // Fonction principale - Voir le NOTION
     SerSocketFd = socket(AF_INET, SOCK_STREAM, 0); // -> Create a socket
     if (SerSocketFd < 0) // -> Check if the socket creation failed
     {
@@ -54,14 +55,20 @@ void Server::SerSocket()
     }
     int en = 1; // -> Set the socket option to reuse the address
 
+    // Set socket options - Je ne sais pas vraiment à quoi ça sert et si c'est nécessaire
     if (setsockopt(SerSocketFd, SOL_SOCKET, SO_REUSEADDR, &en, sizeof(en)) < 0) 
         throw(std::runtime_error("failed to set option (SO_REUSEADDR) on socket"));
     if (fcntl(SerSocketFd, F_SETFL, O_NONBLOCK) < 0) // -> Set the socket to non-blocking mode
         throw(std::runtime_error("failed to set socket to non-blocking mode"));
+
+    // Bind() et listen() - Voir le NOTION
     if (bind(SerSocketFd, (struct sockaddr *)&add, sizeof(add)) < 0) // -> Bind the socket to the address
         throw(std::runtime_error("failed to bind socket"));
     if (listen(SerSocketFd, SOMAXCONN) < 0) // -> Listen for incoming connections
         throw(std::runtime_error("failed to listen on socket"));
+    
+    // Server socket is successfully created and bound and now ready to accept connections
+
     
     NewPoll.fd = SerSocketFd; // -> Add the server socket to the poll file descriptors structure
     NewPoll.events = POLLIN; // -> Set the events to poll for incoming connections
@@ -69,11 +76,106 @@ void Server::SerSocket()
     fds.push_back(NewPoll); // -> Add the server socket to the vector of poll file descriptors
 }
 
+void Server::AcceptNewClient()
+{
+    struct sockaddr_in clientAddr;
+    socklen_t clientLen = sizeof(clientAddr);
+    int connectedFd = accept(SerSocketFd, (struct sockaddr*) &clientAddr, &clientLen);
+    
+    if (connectedFd < 0) {
+        std::cerr << "Error accepting new client" << std::endl;
+        return;
+    }
+    
+    std::cout << "New Client <" << connectedFd << "> Connected" << std::endl;
+    
+
+    // Pas encore bien compris tout ca en dessous
+    // Create and add new client to the clients vector
+    Client newClient;
+    newClient.setFd(connectedFd);
+    newClient.setIP(inet_ntoa(clientAddr.sin_addr));
+    clients.push_back(newClient);
+    // Add client socket to poll structure
+    struct pollfd newPoll;
+    newPoll.fd = connectedFd;
+    newPoll.events = POLLIN;
+    newPoll.revents = 0;
+    fds.push_back(newPoll);
+    
+
+    
+    // Send welcome message to the NEW CLIENT (not server socket)
+    SendData(connectedFd);  // <- Fixed: using client FD instead of server FD
+}
+
+void Server::ReceiveNewData(int fd)
+{
+    char buffer[BUFFER_SIZE] = {0}; // -> Buffer to store incoming data
+    ssize_t bytesRead = recv(fd, buffer, sizeof(buffer) - 1, 0); // -> Receive data from the client
+
+    // Verify if the receive call was successful
+    if (bytesRead < 0) // -> Check if the receive call failed
+    {
+        std::cerr << "Error receiving data from client <" << fd << ">" << std::endl;
+        return;
+    }
+    else if (bytesRead == 0) // -> Check if the client has disconnected
+    {
+        std::cout << "Client <" << fd << "> Disconnected" << std::endl;
+        ClearClients(fd); // -> Clear the client from the list
+        return;
+    }
+
+    buffer[bytesRead] = '\0'; // -> Null-terminate the received data
+    std::cout << "Received data from client <" << fd << ">: " << buffer << std::endl;
+    
+}
+
+void Server::SendData(int fd)
+{
+    const char message[] = "Hello from the server!";
+    ssize_t bytesSent = send(fd, message, sizeof(message), 0); // -> Send data to the client
+    if (bytesSent < 0) // -> Check if the send call failed
+    {
+        std::cerr << "Error sending data to client <" << fd << ">" << std::endl;
+        return;
+    }
+}
+
 void Server::ServerInit()
 {
-    this->Port = 888; // -> Set the default port number for the server
+    this->Port = 8888; // -> Set the default port number for the server
     SerSocket(); // -> Create the server socket
 
-    std::cout << "Server <" << SerSocketFd << "> Listening on Port <" << Port << ">" << std::endl;
     std::cout << "Waiting to accept a connection...\n" << std::endl;
+    
+     // Je ne comprends pas encore comment fonctionne poll(), je voulais surtout appeler la fonction AcceptNewClient() quand un client se connecte
+    while (!Server::Signal)
+    {
+        if (poll(&fds[0], fds.size(), -1) < 0 && !Server::Signal)
+            throw(std::runtime_error("poll() failed"));
+        
+        for (size_t i = 0; i < fds.size(); i++)
+        {
+            if (fds[i].revents & POLLIN)
+            {
+                if (fds[i].fd == SerSocketFd)
+                    AcceptNewClient(); // -> Accept a new client connection
+                else
+                    ReceiveNewData(fds[i].fd); // -> Receive data from the client
+            }
+        }
+    }
+}
+
+void Server::ClearClients(int fd){ //-> clear the clients
+	for(size_t i = 0; i < fds.size(); i++){ //-> remove the client from the pollfd
+		if (fds[i].fd == fd)
+			{fds.erase(fds.begin() + i); break;}
+	}
+	for(size_t i = 0; i < clients.size(); i++){ //-> remove the client from the vector of clients
+		if (clients[i].getFd() == fd)
+			{clients.erase(clients.begin() + i); break;}
+	}
 }
