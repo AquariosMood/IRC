@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 14:34:06 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 15:37:50 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,23 +87,29 @@ void Server::AcceptNewClient()
         return;
     }
     
-    std::cout << "New Client <" << connectedFd << "> Connected" << std::endl;
-    
-
-    // Pas encore bien compris tout ca en dessous
     // Create and add new client to the clients vector
     Client newClient;
     newClient.setFd(connectedFd);
     newClient.setIP(inet_ntoa(clientAddr.sin_addr));
+
+    std::ostringstream userStream;
+    userStream << "User" << connectedFd;
+    newClient.setUsername(userStream.str());
+    
+    std::ostringstream nickStream;
+    nickStream << "Guest" << connectedFd;
+    newClient.setNickname(nickStream.str());
+    
     clients.push_back(newClient);
+    std::cout << "New client connected: " << newClient.getUsername() 
+              << " (nickname: " << newClient.getNickname() << ")" << std::endl;
+    
     // Add client socket to poll structure
     struct pollfd newPoll;
     newPoll.fd = connectedFd;
     newPoll.events = POLLIN;
     newPoll.revents = 0;
     fds.push_back(newPoll);
-    
-
     
     // Send welcome message to the NEW CLIENT (not server socket)
     SendData(connectedFd);  // <- Fixed: using client FD instead of server FD
@@ -120,7 +126,7 @@ void Server::ReceiveNewData(int fd)
             break;
         }
     }
-
+    
     char buffer[BUFFER_SIZE] = {0}; // -> Buffer to store incoming data
     ssize_t bytesRead = recv(fd, buffer, sizeof(buffer) - 1, 0); // -> Receive data from the client
 
@@ -132,7 +138,11 @@ void Server::ReceiveNewData(int fd)
     }
     else if (bytesRead == 0) // -> Check if the client has disconnected
     {
-        std::cout << "Client <" << fd << "> Disconnected" << std::endl;
+        if (client) {
+            std::cout << client->getUsername() << "> Disconnected" << std::endl;
+        } else {
+            std::cout << "Client <" << fd << "> Disconnected" << std::endl;
+        }
         ClearClients(fd); // -> Clear the client from the list
         return;
     }
@@ -141,7 +151,7 @@ void Server::ReceiveNewData(int fd)
     
     // Check if client exists before using it
     if (client) {
-        std::cout << client->getNickname() << ": " << buffer << std::endl;
+        std::cout << client->getUsername() << ": " << buffer << std::endl;
         // Parse the received command
         parseCommand(std::string(buffer), fd);
     } else {
@@ -214,6 +224,7 @@ void Server::parseCommand(const std::string& message, int fd)
         std::string nickname;
         iss >> nickname; // Extract the nickname properly
         client->setNickname(nickname); // Use proper method name
+        std::cout << "Nickname set to: " << client->getNickname() << std::endl;
     } else if (command == "JOIN") {
         std::cout << "JOIN command received" << std::endl;
     } else if (command == "PRIVMSG") {
