@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:52:51 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 15:48:39 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 18:32:32 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,7 @@ class Server {
         std::string serverPassword; // Password for the server
         static bool Signal; // Static variable to handle signals
         std::vector<Client> clients; // Vector to store connected clients
+        std::vector<Channel> channels; // Vector to store channels
         std::vector<struct pollfd> fds; // Vector for poll file descriptors
     public:
         Server(int port, const std::string& password) 
@@ -51,14 +52,31 @@ class Server {
         void AcceptNewClient(); // Method to accept new clients
         void ReceiveNewData(int fd); // Method to receive data from clients
         void SendData(int fd); // Method to send data to clients
-
         static void SignalHandler(int signum); // Static method to handle signals
-
         void CloseFds(); // Method to close file descriptors
-
         void parseCommand(const std::string& message, int fd); // Method to parse commands from clients
-        
         void ClearClients(int fd); // Method to clear the list of clients
+
+        // Authentication methods
+        void handlePass(Client* client, std::istringstream& iss); // Handle PASS command
+        void handleNick(Client* client, std::istringstream& iss); // Handle NICK command
+        void handleUser(Client* client, std::istringstream& iss); // Handle USER command
+        void handleQuit(Client* client, std::istringstream& iss); // Handle QUIT command
+
+        // Helper methods
+        void sendIRCReply(int fd, const std::string& message); // Method to send IRC reply to a client
+        void sendWelcome(Client* client); // Method to send welcome message to clients
+        void checkRegistration(Client* client); // Method to check if a client is fully registered
+        Client* getClientByFd(int fd); // Method to get a client by file descriptor
+
+        // Channel
+        void handleJoin(Client* client, std::istringstream& iss); // Handle JOIN command
+        void sendChannelInfo(Client* client, Channel* channel); // Send channel info to a client
+        Channel* findChannel(const std::string& name); // Find a channel by name
+        Channel* createChannel(const std::string& name, Client* creator); // Create a new channel
+        void addClientToChannel(Client* client, Channel* channel); // Add a client to a channel
+        void notifyChannelJoin(Client* client, Channel* channel); // Notify channel members of a new join
+        
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/14 19:07:10 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 14:23:27 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 18:34:47 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,44 +15,35 @@
 
 #include <iostream>
 #include "Client.hpp"
+#include "irc.hpp"
 #include <vector>
 #include <algorithm> // For std::remove
 
 // Une classe channel
 class Channel {
-    private:
-        std::string name; // Name of the channel
-        std::string topic; // Topic of the channel
-        std::string password; // Password for the channel
-        std::vector<Client> members; // Vector to store clients in the channel
-        std::vector<Client> operators; // Vector to store channel operators
-    public:
-        Channel(const std::string& name, const std::string& topic = "", const std::string& password = "")
-            : name(name), topic(topic), password(password) {}
+private:
+    std::string name;
+    std::string topic;
+    std::string password;
+    std::vector<Client*> clients;     // Add this member
+    std::vector<Client*> operators;   // Add this member
 
-        void addMember(const Client& client) {
-            members.push_back(client);
-        }
+public:
+    // Constructor
+    Channel(const std::string& name, const std::string& topic = "", const std::string& password = "")
+        : name(name), topic(topic), password(password) {}
 
-        void removeMember(const Client& client) {
-            members.erase(std::remove(members.begin(), members.end(), client), members.end());
-        }
-
-        void setTopic(const std::string& newTopic) {
-            topic = newTopic;
-        }
-
-        void setPassword(const std::string& newPassword) {
-            password = newPassword;
-        }
-
-        const std::string& getName() const {
-            return name;
-        }
-
-        const std::vector<Client>& getMembers() const {
-            return members;
-        }
+    const std::string& getTopic() const { return topic; }
+    const std::vector<Client*>& getClients() const { return clients; }
+    bool isOperator(Client* client) const;
+    void addOperator(Client* client);
+    void removeOperator(Client* client);
+    void addClient(Client* client);
+    void removeClient(Client* client);
+    bool isClientInChannel(Client* client) const;
+    
+    const std::string& getName() const { return name; }
+    void setTopic(const std::string& newTopic) { topic = newTopic; }
 };
 
 #endif

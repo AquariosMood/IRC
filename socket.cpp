@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 15:48:40 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 18:09:37 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,19 +36,6 @@ void Server::CloseFds()
         close(SerSocketFd);
     }
 }
-
-bool Server::checkPassword(const std::string& password) const {
-    return password == serverPassword;
-}
-
-
-
-
-
-
-
-
-
 
 void Server::SerSocket()
 {
@@ -82,7 +69,6 @@ void Server::SerSocket()
     
     // Server socket is successfully created and bound and now ready to accept connections
 
-    
     NewPoll.fd = SerSocketFd; // -> Add the server socket to the poll file descriptors structure
     NewPoll.events = POLLIN; // -> Set the events to poll for incoming connections
     NewPoll.revents = 0; // -> Initialize revents to 0
@@ -208,39 +194,6 @@ void Server::ServerInit()
                     ReceiveNewData(fds[i].fd); // -> Receive data from the client
             }
         }
-    }
-}
-
-void Server::parseCommand(const std::string& message, int fd)
-{
-  std::istringstream iss(message);
-    std::string command;
-    iss >> command;
-    
-    // Find the client with the matching file descriptor
-    Client* client = NULL;
-    for (size_t i = 0; i < clients.size(); i++) {
-        if (clients[i].getFd() == fd) {
-            client = &clients[i];
-            break;
-        }
-    }
-    
-    // Check if client was found
-    if (!client) {
-        std::cerr << "Error: Client with fd " << fd << " not found" << std::endl;
-        return;
-    }
-    
-    if (command == "NICK") {
-        std::string nickname;
-        iss >> nickname; // Extract the nickname properly
-        client->setNickname(nickname); // Use proper method name
-        std::cout << "Nickname set to: " << client->getNickname() << std::endl;
-    } else if (command == "JOIN") {
-        std::cout << "JOIN command received" << std::endl;
-    } else if (command == "PRIVMSG") {
-        std::cout << "PRIVMSG command received" << std::endl;
     }
 }
 
