@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/07/14 18:42:58 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 14:34:06 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,6 +111,16 @@ void Server::AcceptNewClient()
 
 void Server::ReceiveNewData(int fd)
 {
+    Client *client = NULL; // -> Pointer to hold the client object
+    
+    for (size_t i = 0; i < clients.size(); i++) {
+        if (clients[i].getFd() == fd)
+        {
+            client = &clients[i];
+            break;
+        }
+    }
+
     char buffer[BUFFER_SIZE] = {0}; // -> Buffer to store incoming data
     ssize_t bytesRead = recv(fd, buffer, sizeof(buffer) - 1, 0); // -> Receive data from the client
 
@@ -128,13 +138,23 @@ void Server::ReceiveNewData(int fd)
     }
 
     buffer[bytesRead] = '\0'; // -> Null-terminate the received data
-    std::cout << "Received data from client <" << fd << ">: " << buffer << std::endl;
     
+    // Check if client exists before using it
+    if (client) {
+        std::cout << client->getNickname() << ": " << buffer << std::endl;
+        // Parse the received command
+        parseCommand(std::string(buffer), fd);
+    } else {
+        std::cerr << "Error: Client with fd " << fd << " not found in clients list" << std::endl;
+        std::cout << "Unknown client <" << fd << ">: " << buffer << std::endl;
+        // Still parse the command, but without client context
+        parseCommand(std::string(buffer), fd);
+    }
 }
 
 void Server::SendData(int fd)
 {
-    const char message[] = "Hello from the server!";
+    const char message[] = "Hello from the server!\n";
     ssize_t bytesSent = send(fd, message, sizeof(message), 0); // -> Send data to the client
     if (bytesSent < 0) // -> Check if the send call failed
     {
@@ -148,7 +168,7 @@ void Server::ServerInit()
     this->Port = 8888; // -> Set the default port number for the server
     SerSocket(); // -> Create the server socket
 
-    std::cout << "Waiting to accept a connection...\n" << std::endl;
+    std::cout << "Waiting to accept a connection..." << std::endl;
     
      // Je ne comprends pas encore comment fonctionne poll(), je voulais surtout appeler la fonction AcceptNewClient() quand un client se connecte
     while (!Server::Signal)
@@ -166,6 +186,38 @@ void Server::ServerInit()
                     ReceiveNewData(fds[i].fd); // -> Receive data from the client
             }
         }
+    }
+}
+
+void Server::parseCommand(const std::string& message, int fd)
+{
+  std::istringstream iss(message);
+    std::string command;
+    iss >> command;
+    
+    // Find the client with the matching file descriptor
+    Client* client = NULL;
+    for (size_t i = 0; i < clients.size(); i++) {
+        if (clients[i].getFd() == fd) {
+            client = &clients[i];
+            break;
+        }
+    }
+    
+    // Check if client was found
+    if (!client) {
+        std::cerr << "Error: Client with fd " << fd << " not found" << std::endl;
+        return;
+    }
+    
+    if (command == "NICK") {
+        std::string nickname;
+        iss >> nickname; // Extract the nickname properly
+        client->setNickname(nickname); // Use proper method name
+    } else if (command == "JOIN") {
+        std::cout << "JOIN command received" << std::endl;
+    } else if (command == "PRIVMSG") {
+        std::cout << "PRIVMSG command received" << std::endl;
     }
 }
 
