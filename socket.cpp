@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 18:09:37 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 18:55:32 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,7 +111,7 @@ void Server::AcceptNewClient()
     fds.push_back(newPoll);
     
     // Send welcome message to the NEW CLIENT (not server socket)
-    SendData(connectedFd);  // <- Fixed: using client FD instead of server FD
+    SendData(connectedFd);
 }
 
 void Server::ReceiveNewData(int fd)
@@ -150,7 +150,7 @@ void Server::ReceiveNewData(int fd)
     
     // Check if client exists before using it
     if (client) {
-        std::cout << client->getUsername() << ": " << buffer << std::endl;
+        std::cout << client->getNickname() << ": " << buffer << std::endl;
         // Parse the received command
         parseCommand(std::string(buffer), fd);
     } else {

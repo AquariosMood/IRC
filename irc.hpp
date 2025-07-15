@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:52:51 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 18:32:32 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 18:50:21 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,9 @@ class Server {
         void sendWelcome(Client* client); // Method to send welcome message to clients
         void checkRegistration(Client* client); // Method to check if a client is fully registered
         Client* getClientByFd(int fd); // Method to get a client by file descriptor
+        // Instructions for clients
+        void sendLoginInstructions(int fd); // Send login instructions to a client
+        void sendWelcomeMessage(int fd); // Send welcome message to a client
 
         // Channel
         void handleJoin(Client* client, std::istringstream& iss); // Handle JOIN command
