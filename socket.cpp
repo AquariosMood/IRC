@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 15:37:50 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 15:48:40 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,19 @@ void Server::CloseFds()
         close(SerSocketFd);
     }
 }
+
+bool Server::checkPassword(const std::string& password) const {
+    return password == serverPassword;
+}
+
+
+
+
+
+
+
+
+
 
 void Server::SerSocket()
 {
@@ -175,11 +188,10 @@ void Server::SendData(int fd)
 
 void Server::ServerInit()
 {
-    this->Port = 8888; // -> Set the default port number for the server
     SerSocket(); // -> Create the server socket
 
+    std::cout << "Server is running on port: " << Port << std::endl;
     std::cout << "Waiting to accept a connection..." << std::endl;
-    
      // Je ne comprends pas encore comment fonctionne poll(), je voulais surtout appeler la fonction AcceptNewClient() quand un client se connecte
     while (!Server::Signal)
     {

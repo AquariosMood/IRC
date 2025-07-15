@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:52:51 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 14:21:08 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/15 15:48:39 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,13 +36,17 @@ class Server {
     private:
         int Port; // Port number for the server
         int SerSocketFd; // Socket file descriptor for the server
+        std::string serverPassword; // Password for the server
         static bool Signal; // Static variable to handle signals
         std::vector<Client> clients; // Vector to store connected clients
         std::vector<struct pollfd> fds; // Vector for poll file descriptors
     public:
-        Server(){SerSocketFd = -1;}; // Default constructor initializes SerSocketFd to -1
+        Server(int port, const std::string& password) 
+            : Port(port), SerSocketFd(-1), serverPassword(password) {}
 
         void ServerInit(); // Method to initialize the server
+        bool checkPassword(const std::string& password) const; // Method to check server password
+        
         void SerSocket(); // Method to create the server socket
         void AcceptNewClient(); // Method to accept new clients
         void ReceiveNewData(int fd); // Method to receive data from clients
