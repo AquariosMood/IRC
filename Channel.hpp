@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/14 19:07:10 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 18:34:47 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 13:21:04 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,35 +14,39 @@
 #define CHANNEL_HPP
 
 #include <iostream>
-#include "Client.hpp"
-#include "irc.hpp"
 #include <vector>
-#include <algorithm> // For std::remove
+#include <algorithm>
+#include <string>
 
-// Une classe channel
+// Forward declaration instead of including irc.hpp
+class Client;
+
 class Channel {
 private:
     std::string name;
     std::string topic;
     std::string password;
-    std::vector<Client*> clients;     // Add this member
-    std::vector<Client*> operators;   // Add this member
+    std::vector<int> clientFds;     // Store FDs instead of pointers
+    std::vector<int> operatorFds;   // Store FDs instead of pointers
 
 public:
-    // Constructor
-    Channel(const std::string& name, const std::string& topic = "", const std::string& password = "")
-        : name(name), topic(topic), password(password) {}
+    Channel(const std::string& channelName, const std::string& channelTopic = "", const std::string& channelPassword = "")
+        : name(channelName), topic(channelTopic), password(channelPassword) {}
 
-    const std::string& getTopic() const { return topic; }
-    const std::vector<Client*>& getClients() const { return clients; }
-    bool isOperator(Client* client) const;
-    void addOperator(Client* client);
-    void removeOperator(Client* client);
-    void addClient(Client* client);
-    void removeClient(Client* client);
-    bool isClientInChannel(Client* client) const;
+    // Update method signatures
+    bool isClientInChannel(int clientFd) const;
+    void addClient(int clientFd);
+    void addOperator(int clientFd);
+    void removeClient(int clientFd);
+    bool isOperator(int clientFd) const;
     
+    // Getters
     const std::string& getName() const { return name; }
+    const std::string& getTopic() const { return topic; }
+    const std::vector<int>& getClientFds() const { return clientFds; }
+    const std::vector<int>& getOperatorFds() const { return operatorFds; }
+    
+    // Setters
     void setTopic(const std::string& newTopic) { topic = newTopic; }
 };
 

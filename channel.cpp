@@ -6,16 +6,16 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:12:33 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 18:34:49 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 13:21:55 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "irc.hpp"
 #include "Channel.hpp"
 
-bool Channel::isClientInChannel(Client* client) const {
-    for (size_t i = 0; i < clients.size(); i++) {
-        if (clients[i]->getFd() == client->getFd()) {
+bool Channel::isClientInChannel(int clientFd) const {
+    for (size_t i = 0; i < clientFds.size(); i++) {
+        if (clientFds[i] == clientFd) {
             return true;
         }
     }
@@ -30,7 +30,6 @@ Channel* Server::findChannel(const std::string& name) {
     }
     return NULL;
 }
-
 
 void Server::handleJoin(Client* client, std::istringstream& iss) {
     std::string channelName;
@@ -47,6 +46,18 @@ void Server::handleJoin(Client* client, std::istringstream& iss) {
         return;
     }
     
+    // Validate channel name length and characters
+    if (channelName.length() > 50) {
+        sendIRCReply(client->getFd(), ":localhost 479 " + client->getNickname() + " " + channelName + " :Channel name too long");
+        return;
+    }
+    
+    // Check for invalid characters (space, comma, etc.)
+    if (channelName.find(' ') != std::string::npos || channelName.find(',') != std::string::npos) {
+        sendIRCReply(client->getFd(), ":localhost 479 " + client->getNickname() + " " + channelName + " :Invalid channel name");
+        return;
+    }
+    
     std::cout << "Client " << client->getNickname() << " attempting to join " << channelName << std::endl;
     
     // Find or create channel
@@ -57,7 +68,7 @@ void Server::handleJoin(Client* client, std::istringstream& iss) {
     }
     
     // Check if client is already in channel
-    if (channel->isClientInChannel(client)) {
+    if (channel->isClientInChannel(client->getFd())) {
         std::cout << "Client " << client->getNickname() << " already in " << channelName << std::endl;
         return;
     }
@@ -74,115 +85,116 @@ void Server::handleJoin(Client* client, std::istringstream& iss) {
     std::cout << "Client " << client->getNickname() << " joined " << channelName << std::endl;
 }
 
-
-
 Channel* Server::createChannel(const std::string& name, Client* creator) {
-    Channel newChannel(name, "", ""); // name, topic, key
+    Channel newChannel(name, "", "");
     channels.push_back(newChannel);
     Channel* channel = &channels.back();
     
     // Creator becomes operator
-    channel->addOperator(creator);
+    if (creator)
+        channel->addOperator(creator->getFd());
     
     return channel;
 }
 
 void Server::addClientToChannel(Client* client, Channel* channel) {
-    channel->addClient(client);
+        channel->addClient(client->getFd());
 }
 
 void Server::notifyChannelJoin(Client* client, Channel* channel) {
+    if (!client || !channel) return;
+    
     std::string joinMessage = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost JOIN " + channel->getName();
     
-    // Send join message to all clients in the channel
-    std::vector<Client*> channelClients = channel->getClients();
-    for (size_t i = 0; i < channelClients.size(); i++) {
-        sendIRCReply(channelClients[i]->getFd(), joinMessage);
+    const std::vector<int>& clientFds = channel->getClientFds();
+    for (size_t i = 0; i < clientFds.size(); i++) {
+        sendIRCReply(clientFds[i], joinMessage);
     }
 }
 
 void Server::sendChannelInfo(Client* client, Channel* channel) {
+    if (!client || !channel) return;
+    
     std::string nick = client->getNickname();
     std::string channelName = channel->getName();
     
-    // Send topic (if any)
+    // Send topic
     if (!channel->getTopic().empty()) {
         sendIRCReply(client->getFd(), ":localhost 332 " + nick + " " + channelName + " :" + channel->getTopic());
     } else {
         sendIRCReply(client->getFd(), ":localhost 331 " + nick + " " + channelName + " :No topic is set");
     }
     
-    // Send names list (RPL_NAMREPLY)
+    // Build names list
+    const std::vector<int>& clientFds = channel->getClientFds();
     std::string namesList = ":localhost 353 " + nick + " = " + channelName + " :";
-    std::vector<Client*> channelClients = channel->getClients();
     
-    for (size_t i = 0; i < channelClients.size(); i++) {
-        if (channel->isOperator(channelClients[i])) {
-            namesList += "@"; // @ prefix for operators
+    for (size_t i = 0; i < clientFds.size(); i++) {
+        Client* channelClient = getClientByFd(clientFds[i]);
+        if (!channelClient) continue;
+        
+        if (channel->isOperator(clientFds[i])) {
+            namesList += "@";
         }
-        namesList += channelClients[i]->getNickname();
-        if (i < channelClients.size() - 1) {
+        namesList += channelClient->getNickname();
+        if (i < clientFds.size() - 1) {
             namesList += " ";
         }
     }
     
     sendIRCReply(client->getFd(), namesList);
-    
-    // End of names list (RPL_ENDOFNAMES)
     sendIRCReply(client->getFd(), ":localhost 366 " + nick + " " + channelName + " :End of /NAMES list");
 }
 
 // Add these implementations to the end of your channel.cpp file:
 
-void Channel::addClient(Client* client) {
-    // Check if client is already in the channel
-    if (!isClientInChannel(client)) {
-        clients.push_back(client);
+void Channel::addClient(int clientFd) {
+    if (!isClientInChannel(clientFd)) {
+        clientFds.push_back(clientFd);
     }
 }
 
-void Channel::addOperator(Client* client) {
-    // Check if client is already an operator
-    for (size_t i = 0; i < operators.size(); i++) {
-        if (operators[i]->getFd() == client->getFd()) {
+void Channel::addOperator(int clientFd) {
+    for (size_t i = 0; i < operatorFds.size(); i++) {
+        if (operatorFds[i] == clientFd) {
             return; // Already an operator
         }
     }
-    operators.push_back(client);
+    operatorFds.push_back(clientFd);
 }
 
-bool Channel::isOperator(Client* client) const {
-    for (size_t i = 0; i < operators.size(); i++) {
-        if (operators[i]->getFd() == client->getFd()) {
+bool Channel::isOperator(int clientFd) const {
+    for (size_t i = 0; i < operatorFds.size(); i++) {
+        if (operatorFds[i] == clientFd) {
             return true;
         }
     }
     return false;
 }
 
-void Channel::removeClient(Client* client) {
-    // Remove from clients vector
-    for (size_t i = 0; i < clients.size(); i++) {
-        if (clients[i]->getFd() == client->getFd()) {
-            clients.erase(clients.begin() + i);
+void Channel::removeClient(int clientFd) {
+    // Remove from clients
+    for (size_t i = 0; i < clientFds.size(); i++) {
+        if (clientFds[i] == clientFd) {
+            clientFds.erase(clientFds.begin() + i);
             break;
         }
     }
     
-    // Also remove from operators if they were one
-    for (size_t i = 0; i < operators.size(); i++) {
-        if (operators[i]->getFd() == client->getFd()) {
-            operators.erase(operators.begin() + i);
+    // Remove from operators if they were one
+    for (size_t i = 0; i < operatorFds.size(); i++) {
+        if (operatorFds[i] == clientFd) {
+            operatorFds.erase(operatorFds.begin() + i);
             break;
         }
     }
 }
 
-void Channel::removeOperator(Client* client) {
-    for (size_t i = 0; i < operators.size(); i++) {
-        if (operators[i]->getFd() == client->getFd()) {
-            operators.erase(operators.begin() + i);
-            break;
-        }
-    }
-}
+// void Channel::removeOperator(Client* client) {
+//     for (size_t i = 0; i < operators.size(); i++) {
+//         if (operators[i]->getFd() == client->getFd()) {
+//             operators.erase(operators.begin() + i);
+//             break;
+//         }
+//     }
+// }
