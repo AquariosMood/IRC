@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:08:29 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 18:51:30 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 16:44:38 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,6 @@ void Server::parseCommand(const std::string& message, int fd)
         std::cerr << "Error: Client with fd " << fd << " not found" << std::endl;
         return;
     }
-    
     // Trim whitespace and check for empty commands
     command.erase(0, command.find_first_not_of(" \t\r\n"));
     command.erase(command.find_last_not_of(" \t\r\n") + 1);
@@ -74,7 +73,7 @@ void Server::parseCommand(const std::string& message, int fd)
             sendLoginInstructions(fd);
             return;
         }
-    //    handlePrivmsg(client, iss); // À implémenter
+        handlePrivmsg(client, iss);
     } else {
         // Commande inconnue - donner de l'aide
         if (!client->isRegistered()) {

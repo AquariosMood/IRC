@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 18:55:32 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 16:44:27 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -150,7 +150,7 @@ void Server::ReceiveNewData(int fd)
     
     // Check if client exists before using it
     if (client) {
-        std::cout << client->getNickname() << ": " << buffer << std::endl;
+    //    std::cout << client->getNickname() << ": " << buffer << std::endl;
         // Parse the received command
         parseCommand(std::string(buffer), fd);
     } else {
@@ -163,7 +163,13 @@ void Server::ReceiveNewData(int fd)
 
 void Server::SendData(int fd)
 {
-    const char message[] = "Hello from the server!\n";
+    const char message[] = 
+        "Welcome to the IRC server!\n"
+        "To log in, follow these steps:\n"
+        "1. Authenticate with: PASS <password>\n"
+        "2. Set your nickname: NICK <nickname>\n"
+        "3. Set your username: USER <username> 0 * :<realname>\n"
+        "4. Join a channel: JOIN #<channel>\n";
     ssize_t bytesSent = send(fd, message, sizeof(message), 0); // -> Send data to the client
     if (bytesSent < 0) // -> Check if the send call failed
     {

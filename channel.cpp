@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:12:33 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 13:21:55 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 13:33:13 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -187,6 +187,72 @@ void Channel::removeClient(int clientFd) {
             operatorFds.erase(operatorFds.begin() + i);
             break;
         }
+    }
+}
+
+void Server::handlePrivmsg(Client* client, std::istringstream& iss) {
+    std::string target;
+    iss >> target;
+    
+    if (target.empty()) {
+        sendIRCReply(client->getFd(), ":localhost 411 " + client->getNickname() + " :No recipient given");
+        return;
+    }
+    
+    // Get the message (everything after target)
+    std::string message;
+    std::getline(iss, message);
+    if (!message.empty() && message[0] == ' ') {
+        message = message.substr(1); // Remove leading space
+    }
+    if (!message.empty() && message[0] == ':') {
+        message = message.substr(1); // Remove leading :
+    }
+    
+    if (message.empty()) {
+        sendIRCReply(client->getFd(), ":localhost 412 " + client->getNickname() + " :No text to send");
+        return;
+    }
+    
+    // Check if target is a channel (starts with # or &)
+    if (target[0] == '#' || target[0] == '&') {
+        Channel* channel = findChannel(target);
+        if (!channel) {
+            sendIRCReply(client->getFd(), ":localhost 403 " + client->getNickname() + " " + target + " :No such channel");
+            return;
+        }
+        
+        if (!channel->isClientInChannel(client->getFd())) {
+            sendIRCReply(client->getFd(), ":localhost 404 " + client->getNickname() + " " + target + " :Cannot send to channel");
+            return;
+        }
+        
+        // Send message to all clients in channel except sender
+        const std::vector<int>& clientFds = channel->getClientFds();
+        for (size_t i = 0; i < clientFds.size(); i++) {
+            if (clientFds[i] != client->getFd()) {
+                sendIRCReply(clientFds[i], ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PRIVMSG " + target + " :" + message);
+            }
+        }
+        
+        std::cout << "Message in " << target << " from " << client->getNickname() << ": " << message << std::endl;
+    } else {
+        // Private message to user
+        Client* targetClient = NULL;
+        for (size_t i = 0; i < clients.size(); i++) {
+            if (clients[i].getNickname() == target) {
+                targetClient = &clients[i];
+                break;
+            }
+        }
+        
+        if (!targetClient) {
+            sendIRCReply(client->getFd(), ":localhost 401 " + client->getNickname() + " " + target + " :No such nick");
+            return;
+        }
+        
+        sendIRCReply(targetClient->getFd(), ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PRIVMSG " + target + " :" + message);
+        std::cout << "Private message from " << client->getNickname() << " to " << target << ": " << message << std::endl;
     }
 }
 

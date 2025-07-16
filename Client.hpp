@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/14 19:05:10 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 17:52:19 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 16:54:13 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,15 +26,18 @@ class Client {
         bool authenticated; // Authentication status of the client
         bool registered; // Registration status of the client
     public:
-        Client() : Fd(-1), IP(""), Nickname("*"), Username("*") {} // Default constructor initializes Fd to -1 and IP to an empty string, Nickname and Username to "*"
-        Client(int fd, const std::string &ip) : Fd(fd), IP(ip), Nickname("*"), Username("*"), Realname("*") {} // Parameterized constructor
-        Client(const Client &other) : Fd(other.Fd), IP(other.IP), Nickname(other.Nickname), Username(other.Username), Realname(other.Realname) {} // Copy constructor
+        Client() : Fd(-1), IP(""), Nickname("*"), Username("*"), Realname("*"), authenticated(false), registered(false) {} // Default constructor initializes Fd to -1 and IP to an empty string, Nickname and Username to "*"
+        Client(int fd, const std::string &ip) : Fd(fd), IP(ip), Nickname("*"), Username("*"), Realname("*"), authenticated(false), registered(false) {} // Parameterized constructor
+        Client(const Client &other) : Fd(other.Fd), IP(other.IP), Nickname(other.Nickname), Username(other.Username), Realname(other.Realname), authenticated(other.authenticated), registered(other.registered) {} // Copy constructor
         Client& operator=(const Client &other) { // Assignment operator
             if (this != &other) {
                 Fd = other.Fd;
                 IP = other.IP;
                 Nickname = other.Nickname;
                 Username = other.Username;
+                Realname = other.Realname;
+                authenticated = other.authenticated;
+                registered = other.registered;
             }
             return *this;
         }

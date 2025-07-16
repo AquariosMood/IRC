@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:52:51 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 18:50:21 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 13:31:42 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,6 +79,7 @@ class Server {
         Channel* createChannel(const std::string& name, Client* creator); // Create a new channel
         void addClientToChannel(Client* client, Channel* channel); // Add a client to a channel
         void notifyChannelJoin(Client* client, Channel* channel); // Notify channel members of a new join
+        void handlePrivmsg(Client* client, std::istringstream& iss); // Handle PRIVMSG command
         
 };
 
