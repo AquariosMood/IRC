@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:52:51 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 13:31:42 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 17:07:35 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,6 +62,7 @@ class Server {
         void handleNick(Client* client, std::istringstream& iss); // Handle NICK command
         void handleUser(Client* client, std::istringstream& iss); // Handle USER command
         void handleQuit(Client* client, std::istringstream& iss); // Handle QUIT command
+        void handlePart(Client* client, std::istringstream& iss); // Handle PART command
 
         // Helper methods
         void sendIRCReply(int fd, const std::string& message); // Method to send IRC reply to a client

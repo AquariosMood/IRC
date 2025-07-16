@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 17:59:13 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 15:47:25 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 17:25:30 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,12 +49,6 @@ bool Server::checkPassword(const std::string& password) const {
 }
 
 void Server::checkRegistration(Client* client) {
-    std::cout << "DEBUG: Checking registration for " << client->getNickname() << std::endl;
-    std::cout << "  - Authenticated: " << (client->isAuthenticated() ? "YES" : "NO") << std::endl;
-    std::cout << "  - Nickname: '" << client->getNickname() << "'" << std::endl;
-    std::cout << "  - Username: '" << client->getUsername() << "'" << std::endl;
-    std::cout << "  - Already registered: " << (client->isRegistered() ? "YES" : "NO") << std::endl;
-    
     if (client->isAuthenticated() && 
         !client->getNickname().empty() && client->getNickname() != "*" &&
         !client->getUsername().empty() && client->getUsername() != "*" &&

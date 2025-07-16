@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:12:33 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 13:33:13 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 17:26:41 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -264,3 +264,36 @@ void Server::handlePrivmsg(Client* client, std::istringstream& iss) {
 //         }
 //     }
 // }
+
+void Server::handlePart(Client *client, std::istringstream& iss)
+{
+    std::string channelName;
+    iss >> channelName;
+
+    if (channelName.empty()) {
+        sendIRCReply(client->getFd(), ":localhost 461 " + client->getNickname() + " PART :Not enough parameters");
+        return;
+    }
+
+    Channel* channel = findChannel(channelName);
+    if (!channel) {
+        sendIRCReply(client->getFd(), ":localhost 403 " + client->getNickname() + " " + channelName + " :No such channel");
+        return;
+    }
+
+    if (!channel->isClientInChannel(client->getFd())) {
+        sendIRCReply(client->getFd(), ":localhost 442 " + client->getNickname() + " " + channelName + " :You're not on that channel");
+        return;
+    }
+
+    // Notify channel members about the part
+    const std::vector<int>& clientFds = channel->getClientFds();
+    for (size_t i = 0; i < clientFds.size(); i++) {
+        sendIRCReply(clientFds[i], ":" + client->getNickname() + "!" + client->getUsername() + "@localhost PART " + channelName);
+    }
+
+    // Remove client from channel
+    channel->removeClient(client->getFd());
+
+    std::cout << "Client " << client->getNickname() << " left " << channelName << std::endl;
+}

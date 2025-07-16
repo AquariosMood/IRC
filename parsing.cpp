@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:08:29 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 16:44:38 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/16 17:05:01 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,6 +74,14 @@ void Server::parseCommand(const std::string& message, int fd)
             return;
         }
         handlePrivmsg(client, iss);
+    
+    } else if (command == "PART") {
+        if (!client->isRegistered()) {
+            sendIRCReply(fd, ":localhost 451 * :You have not registered");
+            sendLoginInstructions(fd);
+            return;
+        }
+        handlePart(client, iss);
     } else {
         // Commande inconnue - donner de l'aide
         if (!client->isRegistered()) {
