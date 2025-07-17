@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 10:52:51 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 17:07:35 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/17 12:52:14 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,6 +63,11 @@ class Server {
         void handleUser(Client* client, std::istringstream& iss); // Handle USER command
         void handleQuit(Client* client, std::istringstream& iss); // Handle QUIT command
         void handlePart(Client* client, std::istringstream& iss); // Handle PART command
+        void handleTopic(Client* client, std::istringstream& iss); // Handle TOPIC command
+        void handlePrivmsg(Client* client, std::istringstream& iss); // Handle PRIVMSG command
+        void handleKick(Client* client, std::istringstream& iss); // Handle KICK command
+        void handleMode(Client* client, std::istringstream& iss); // Handle MODE command
+        void handleInvite(Client* client, std::istringstream& iss); // Handle INVITE command
 
         // Helper methods
         void sendIRCReply(int fd, const std::string& message); // Method to send IRC reply to a client
@@ -79,9 +84,7 @@ class Server {
         Channel* findChannel(const std::string& name); // Find a channel by name
         Channel* createChannel(const std::string& name, Client* creator); // Create a new channel
         void addClientToChannel(Client* client, Channel* channel); // Add a client to a channel
-        void notifyChannelJoin(Client* client, Channel* channel); // Notify channel members of a new join
-        void handlePrivmsg(Client* client, std::istringstream& iss); // Handle PRIVMSG command
-        
+        void notifyChannelJoin(Client* client, Channel* channel); // Notify channel members of a new join        
 };
 
 #endif

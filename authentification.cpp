@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 17:57:53 by crios             #+#    #+#             */
-/*   Updated: 2025/07/15 17:58:50 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/17 13:05:42 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,9 +103,25 @@ void Server::handleQuit(Client* client, std::istringstream& iss) {
     if (!reason.empty() && reason[0] == ':') {
         reason = reason.substr(1);
     }
-    
-    std::cout << "Client " << client->getFd() << " (" << client->getNickname() 
-              << ") quit: " << reason << std::endl;
-    
-    ClearClients(client->getFd());
+    if (!reason.empty() && reason[0] == ' ') {
+        reason = reason.substr(1); // Remove leading space
+    }
+    if (reason.empty()) {
+        reason = "Client quit"; // Default reason if none provided
+    }
+
+    // Notify other clients in channels
+    for (size_t i = 0; i < channels.size(); i++) {
+        if (channels[i].isClientInChannel(client->getFd())) {
+            const std::vector<int>& clientFds = channels[i].getClientFds();
+            for (size_t j = 0; j < clientFds.size(); j++) {
+                if (clientFds[j] != client->getFd()) {
+                    sendIRCReply(clientFds[j], ":" + client->getNickname() + "!" + client->getUsername() + "@localhost QUIT :" + reason);
+                }
+            }
+            channels[i].removeClient(client->getFd());
+        }
+    }
+    std::cout << "Client " << client->getFd() << " quit: " << reason << std::endl;
+    ClearClients(client->getFd()); // Remove client from server
 }

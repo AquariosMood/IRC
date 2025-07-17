@@ -12,6 +12,8 @@ SRCS = main.cpp \
 	   helpers.cpp \
 	   parsing.cpp \
 	   channel.cpp \
+	   mode.cpp \
+	   invite.cpp \
 
 OBJS = $(SRCS:.cpp=.o)
 

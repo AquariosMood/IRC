@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:08:29 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 17:05:01 by crios            ###   ########.fr       */
+/*   Updated: 2025/07/17 12:59:28 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,7 +82,37 @@ void Server::parseCommand(const std::string& message, int fd)
             return;
         }
         handlePart(client, iss);
-    } else {
+    } else if (command == "TOPIC") {
+        if (!client->isRegistered()){
+            sendIRCReply(fd, ":localhost 451 * :You have not registered");
+            sendLoginInstructions(fd);
+            return;
+        }
+        handleTopic(client, iss);
+    } else if (command == "KICK")
+    {
+        if (!client->isRegistered()) {
+            sendIRCReply(fd, ":localhost 451 * :You have not registered");
+            sendLoginInstructions(fd);
+            return;
+        }
+        handleKick(client, iss);
+    } else if (command == "MODE") {
+        if (!client->isRegistered()) {
+            sendIRCReply(fd, ":localhost 451 * :You have not registered");
+            sendLoginInstructions(fd);
+            return;
+        }
+        handleMode(client, iss);
+    } else if (command == "INVITE") {
+        if (!client->isRegistered()) {
+            sendIRCReply(fd, ":localhost 451 * :You have not registered");
+            sendLoginInstructions(fd);
+            return;
+        }
+        handleInvite(client, iss);
+    }
+    else {
         // Commande inconnue - donner de l'aide
         if (!client->isRegistered()) {
             sendLoginInstructions(fd);
