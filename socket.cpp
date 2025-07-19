@@ -15,12 +15,11 @@
 bool Server::Signal = false; // Initialize static variable
 
 
-// Method to handle signals
 void Server::SignalHandler(int signum)
 {
-    (void)signum; // Suppress unused parameter warning
+    (void)signum; // On le cast vers (void) car on n'en a pas besoin
     std::cout << std::endl << "Signal Received!" << std::endl;
-    Server::Signal = true; // Set the static signal variable to true
+    Server::Signal = true;
 }
 
 // Method to close all file descriptors
@@ -37,61 +36,82 @@ void Server::CloseFds()
     }
 }
 
+// 1. Le serveur a 1 socket d'écoute, mais N sockets clients (un par client).
+// 2. accept() crée un nouveau socket dédié à chaque client.
+// 3. poll() surveille tous les sockets (serveur + clients) pour détecter l'activité.
+// 4. Mode non-bloquant (O_NONBLOCK) permet de gérer plusieurs clients sans bloquer.
 void Server::SerSocket()
 {
-    struct sockaddr_in add; // -> Create a sockaddr_in structure for the server address
-    struct pollfd NewPoll; // -> Create a pollfd structure for polling
+    struct sockaddr_in add; // -> Structure pour stocker l'adresse et le port du serveur
     
-    add.sin_family = AF_INET; // -> Set the address family to IPv4
-    add.sin_port = htons(this->Port); // -> Set the port number, converting to network byte order
-    add.sin_addr.s_addr = INADDR_ANY; // -> Set the address to any available interface
-    
-    // Fonction principale - Voir le NOTION
-    SerSocketFd = socket(AF_INET, SOCK_STREAM, 0); // -> Create a socket
-    if (SerSocketFd < 0) // -> Check if the socket creation failed
+    add.sin_family = AF_INET; // Protocole réseau à utiliser : IPv4
+    add.sin_port = htons(this->Port); // Host TO Network Short
+    add.sin_addr.s_addr = INADDR_ANY;  // 0.0.0.0
+
+    /*
+    SOCK_STREAM = Appel téléphonique
+    - Connexion établie avant de parler
+    - Conversation continue
+    - Ordre des mots respecté
+    - Si coupure, on le sait
+
+    SOCK_DGRAM = SMS
+    - Chaque message indépendant
+    - Peut arriver dans le désordre
+    - Peut être perdu
+    - Plus rapide
+    */
+    // 0 = protocole par défaut (TCP pour SOCK_STREAM)
+    SerSocketFd = socket(AF_INET, SOCK_STREAM, 0); // Crée le socket du serveur
+    if (SerSocketFd < 0)
     {
         std::cerr << "Error creating socket" << std::endl;
         exit(EXIT_FAILURE);
     }
-    int en = 1; // -> Set the socket option to reuse the address
+    int en = 1; // en : enable
 
-    // Set socket options - Je ne sais pas vraiment à quoi ça sert et si c'est nécessaire
+    // setsockopt() : socket options
+    // SO_REUSEADDR : permet de réutiliser l'adresse immédiatement après la fermeture du socket
+    // runtime_error = Erreurs à l'exécution
     if (setsockopt(SerSocketFd, SOL_SOCKET, SO_REUSEADDR, &en, sizeof(en)) < 0) 
         throw(std::runtime_error("failed to set option (SO_REUSEADDR) on socket"));
-    if (fcntl(SerSocketFd, F_SETFL, O_NONBLOCK) < 0) // -> Set the socket to non-blocking mode
+    if (fcntl(SerSocketFd, F_SETFL, O_NONBLOCK) < 0)
         throw(std::runtime_error("failed to set socket to non-blocking mode"));
+    // sinon se retrouve bloqué sur accept() si le client n'est pas connecté
 
-    // Bind() et listen() - Voir le NOTION
-    if (bind(SerSocketFd, (struct sockaddr *)&add, sizeof(add)) < 0) // -> Bind the socket to the address
+    // bind() : Associe le socket à une adresse réseau spécifique (IP + port)
+    if (bind(SerSocketFd, (struct sockaddr *)&add, sizeof(add)) < 0)
         throw(std::runtime_error("failed to bind socket"));
-    if (listen(SerSocketFd, SOMAXCONN) < 0) // -> Listen for incoming connections
+    // listen() : Met le socket en mode écoute
+    if (listen(SerSocketFd, SOMAXCONN) < 0)
         throw(std::runtime_error("failed to listen on socket"));
     
-    // Server socket is successfully created and bound and now ready to accept connections
-
-    NewPoll.fd = SerSocketFd; // -> Add the server socket to the poll file descriptors structure
-    NewPoll.events = POLLIN; // -> Set the events to poll for incoming connections
-    NewPoll.revents = 0; // -> Initialize revents to 0
-    fds.push_back(NewPoll); // -> Add the server socket to the vector of poll file descriptors
+    // Configuration du système de poll() pour surveiller les connexions.
+    struct pollfd NewPoll
+    NewPoll.fd = SerSocketFd; // Indique à poll() de surveiller le socket serveur
+    NewPoll.events = POLLIN; // Surveille les données entrantes
+    NewPoll.revents = 0; // toujours mettre a 0 avant d'utiliser poll(), sera rempli par poll() avec les événements qui se sont produits
+    fds.push_back(NewPoll); // Ajoute le socket serveur à la liste des sockets à surveiller
+    // fds.size() = 1
 }
 
 void Server::AcceptNewClient()
 {
     struct sockaddr_in clientAddr;
     socklen_t clientLen = sizeof(clientAddr);
+    // accept() : cree un nouveau socket pour le client
     int connectedFd = accept(SerSocketFd, (struct sockaddr*) &clientAddr, &clientLen);
     
     if (connectedFd < 0) {
         std::cerr << "Error accepting new client" << std::endl;
         return;
     }
-    
-    // Create and add new client to the clients vector
+
     Client newClient;
     newClient.setFd(connectedFd);
-    newClient.setIP(inet_ntoa(clientAddr.sin_addr));
+    newClient.setIP(inet_ntoa(clientAddr.sin_addr)); // (0x7F000001 -> 127.0.0.1) Internet Network TO ASCII
 
-    std::ostringstream userStream;
+    std::ostringstream userStream; // ecrit dans une string
     userStream << "User" << connectedFd;
     newClient.setUsername(userStream.str());
     
@@ -116,7 +136,7 @@ void Server::AcceptNewClient()
 
 void Server::ReceiveNewData(int fd)
 {
-    Client *client = NULL; // -> Pointer to hold the client object
+    Client *client = NULL;
     
     for (size_t i = 0; i < clients.size(); i++) {
         if (clients[i].getFd() == fd)
@@ -127,31 +147,27 @@ void Server::ReceiveNewData(int fd)
     }
     
     char buffer[BUFFER_SIZE] = {0}; // -> Buffer to store incoming data
-    ssize_t bytesRead = recv(fd, buffer, sizeof(buffer) - 1, 0); // -> Receive data from the client
+    ssize_t bytesRead = recv(fd, buffer, sizeof(buffer) - 1, 0);
 
-    // Verify if the receive call was successful
-    if (bytesRead < 0) // -> Check if the receive call failed
+    if (bytesRead < 0) // connection interrupted or error
     {
         std::cerr << "Error receiving data from client <" << fd << ">" << std::endl;
         return;
     }
-    else if (bytesRead == 0) // -> Check if the client has disconnected
+    else if (bytesRead == 0) // client disconnected
     {
         if (client) {
             std::cout << client->getUsername() << "> Disconnected" << std::endl;
         } else {
             std::cout << "Client <" << fd << "> Disconnected" << std::endl;
         }
-        ClearClients(fd); // -> Clear the client from the list
+        ClearClients(fd);
         return;
     }
 
     buffer[bytesRead] = '\0'; // -> Null-terminate the received data
-    
     // Check if client exists before using it
     if (client) {
-    //    std::cout << client->getNickname() << ": " << buffer << std::endl;
-        // Parse the received command
         parseCommand(std::string(buffer), fd);
     } else {
         std::cerr << "Error: Client with fd " << fd << " not found in clients list" << std::endl;
@@ -170,8 +186,8 @@ void Server::SendData(int fd)
         "2. Set your nickname: NICK <nickname>\n"
         "3. Set your username: USER <username> 0 * :<realname>\n"
         "4. Join a channel: JOIN #<channel>\n";
-    ssize_t bytesSent = send(fd, message, sizeof(message), 0); // -> Send data to the client
-    if (bytesSent < 0) // -> Check if the send call failed
+    ssize_t bytesSent = send(fd, message, sizeof(message), 0); // 0 : comportement par défaut
+    if (bytesSent < 0)
     {
         std::cerr << "Error sending data to client <" << fd << ">" << std::endl;
         return;
@@ -180,11 +196,10 @@ void Server::SendData(int fd)
 
 void Server::ServerInit()
 {
-    SerSocket(); // -> Create the server socket
+    SerSocket(); // Initialise le socket du serveur
 
     std::cout << "Server is running on port: " << Port << std::endl;
     std::cout << "Waiting to accept a connection..." << std::endl;
-     // Je ne comprends pas encore comment fonctionne poll(), je voulais surtout appeler la fonction AcceptNewClient() quand un client se connecte
     while (!Server::Signal)
     {
         if (poll(&fds[0], fds.size(), -1) < 0 && !Server::Signal)
@@ -192,12 +207,14 @@ void Server::ServerInit()
         
         for (size_t i = 0; i < fds.size(); i++)
         {
+            // revents = 0x005 (POLLIN | POLLERR)
+            // On veut détecter si POLLIN est présent, même si d'autres bits sont activés.
             if (fds[i].revents & POLLIN)
             {
                 if (fds[i].fd == SerSocketFd)
-                    AcceptNewClient(); // -> Accept a new client connection
+                    AcceptNewClient();
                 else
-                    ReceiveNewData(fds[i].fd); // -> Receive data from the client
+                    ReceiveNewData(fds[i].fd);
             }
         }
     }

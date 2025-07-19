@@ -26,7 +26,7 @@ class Client {
         bool authenticated; // Authentication status of the client
         bool registered; // Registration status of the client
     public:
-        Client() : Fd(-1), IP(""), Nickname("*"), Username("*"), Realname("*"), authenticated(false), registered(false) {} // Default constructor initializes Fd to -1 and IP to an empty string, Nickname and Username to "*"
+        Client() : Fd(-1), IP(""), Nickname("*"), Username("*"), Realname("*"), authenticated(false), registered(false) {}
         Client(int fd, const std::string &ip) : Fd(fd), IP(ip), Nickname("*"), Username("*"), Realname("*"), authenticated(false), registered(false) {} // Parameterized constructor
         Client(const Client &other) : Fd(other.Fd), IP(other.IP), Nickname(other.Nickname), Username(other.Username), Realname(other.Realname), authenticated(other.authenticated), registered(other.registered) {} // Copy constructor
         Client& operator=(const Client &other) { // Assignment operator

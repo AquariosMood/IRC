@@ -16,6 +16,7 @@
 
 int main(int argc, char **argv)
 {
+    // ./ircserv <port> <password>
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0] << " <port> <password>" << std::endl;
         return 1;
@@ -24,7 +25,8 @@ int main(int argc, char **argv)
     int port = std::atoi(argv[1]);
     std::string password = argv[2];
     
-    // Validation du port
+    // Les ports < 1024 sont réservés au système (ports privilégiés)
+    // Les ports > 65535 n'existent pas (limite des ports TCP/UDP)
     if (port < 1024 || port > 65535) {
         std::cerr << "Error: Port must be between 1024-65535" << std::endl;
         return 1;

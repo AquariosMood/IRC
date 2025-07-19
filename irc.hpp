@@ -29,35 +29,41 @@
 #include <sstream>
 #include "Channel.hpp"
 
-#define BUFFER_SIZE 1024 // Define a buffer size for receiving data
+#define BUFFER_SIZE 1024
 
-// Une classe server
 class Server {
     private:
-        int Port; // Port number for the server
-        int SerSocketFd; // Socket file descriptor for the server
-        std::string serverPassword; // Password for the server
-        static bool Signal; // Static variable to handle signals
-        std::vector<Client> clients; // Vector to store connected clients
-        std::vector<Channel> channels; // Vector to store channels
-        std::vector<struct pollfd> fds; // Vector for poll file descriptors
-    public:
+        int Port;                           // Port d'écoute du serveur (ex: 6667, port IRC standard)
+        int SerSocketFd;                    // Socket principal du serveur - "porte d'entrée" du serveur
+        std::string serverPassword;         // Mot de passe requis pour se connecter au serveur
+        static bool Signal;                 // Variable statique pour détecter les signaux (Ctrl+C). Static car accessible depuis SignalHandler
+        std::vector<Client> clients;        // Tableau dynamique contenant tous les clients connectés au serveur
+        std::vector<Channel> channels;      // Tableau des canaux IRC disponibles (#general, #random, etc.)
+        std::vector<struct pollfd> fds;     // Structure utilisée par poll() pour surveiller plusieurs sockets simultanément (I/O multiplexé)
+        
+        Server(const Server& other);
+        Server& operator=(const Server& other);
+        
+    public :
         Server(int port, const std::string& password) 
             : Port(port), SerSocketFd(-1), serverPassword(password) {}
+            // fd = -1 car aucun socket n'a encore ete cree     
+        ~Server();
 
-        void ServerInit(); // Method to initialize the server
-        bool checkPassword(const std::string& password) const; // Method to check server password
+        void ServerInit();
+        bool checkPassword(const std::string& password) const;
         
-        void SerSocket(); // Method to create the server socket
-        void AcceptNewClient(); // Method to accept new clients
-        void ReceiveNewData(int fd); // Method to receive data from clients
-        void SendData(int fd); // Method to send data to clients
-        static void SignalHandler(int signum); // Static method to handle signals
-        void CloseFds(); // Method to close file descriptors
-        void parseCommand(const std::string& message, int fd); // Method to parse commands from clients
-        void ClearClients(int fd); // Method to clear the list of clients
+        void SerSocket();
+        void AcceptNewClient();
+        void ReceiveNewData(int fd);
+        void SendData(int fd);
+        static void SignalHandler(int signum);
+        // static car la fonction signal() ou sigaction() (pour gérer les signaux comme CTRL+C)
+        // attend une fonction C libre (non liée à une instance de classe).
+        void CloseFds();
+        void parseCommand(const std::string& message, int fd);
+        void ClearClients(int fd);
 
-        // Authentication methods
         void handlePass(Client* client, std::istringstream& iss); // Handle PASS command
         void handleNick(Client* client, std::istringstream& iss); // Handle NICK command
         void handleUser(Client* client, std::istringstream& iss); // Handle USER command
