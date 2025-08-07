@@ -27,6 +27,8 @@
 #include <cstdlib>
 #include <poll.h>
 #include <sstream>
+#include <cerrno>
+#include <errno.h>
 #include "Channel.hpp"
 
 #define BUFFER_SIZE 1024 // Define a buffer size for receiving data
