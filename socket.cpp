@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   socket.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: varodrig <varodrig@student.42.fr>          +#+  +:+       +#+        */
+/*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/08/07 15:50:43 by varodrig         ###   ########.fr       */
+/*   Updated: 2025/08/07 17:04:01 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -149,7 +149,7 @@ void Server::ReceiveNewData(int fd)
         ClearClients(fd); // -> Clear the client from the list
         return;
     }
-
+    std::cout << "Received " << bytesRead << " bytes from client fd:" << fd << std::endl;
     buffer[bytesRead] = '\0'; // -> Null-terminate the received data
     
     if (client) {
