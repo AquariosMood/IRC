@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/08/07 17:04:01 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 17:14:48 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -149,21 +149,22 @@ void Server::ReceiveNewData(int fd)
         ClearClients(fd); // -> Clear the client from the list
         return;
     }
-    std::cout << "Received " << bytesRead << " bytes from client fd:" << fd << std::endl;
-    buffer[bytesRead] = '\0'; // -> Null-terminate the received data
-    
-    if (client) {
-        // Ajouter les données reçues au buffer du client
-        client->addToBuffer(std::string(buffer));
-        
-        // Traiter toutes les commandes complètes dans le buffer
-        std::string completeCommand;
-        while (client->extractCommand(completeCommand)) {
-            parseCommand(completeCommand, fd);
-        }
-    } else {
+    if (!client) {
         std::cerr << "Error: Client with fd " << fd << " not found in clients list" << std::endl;
-        parseCommand(std::string(buffer), fd);
+        ClearClients(fd);  // ✅ Nettoyer au lieu de traiter
+        return;           // ✅ IMPORTANT: arrêter ici
+    }
+
+    std::cout << "Received " << bytesRead << " bytes from client fd:" << fd << std::endl;
+    buffer[bytesRead] = '\0';
+    
+    // Ajouter les données reçues au buffer du client
+    client->addToBuffer(std::string(buffer));
+    
+    // Traiter toutes les commandes complètes dans le buffer
+    std::string completeCommand;
+    while (client->extractCommand(completeCommand)) {
+        parseCommand(completeCommand, fd);
     }
 }
 
@@ -210,7 +211,15 @@ void Server::ServerInit() {
 void Server::ClearClients(int fd) {
     Client* disconnectedClient = getClientByFd(fd);
     
+    if (!disconnectedClient) {
+        // Client déjà supprimé ou inexistant
+        std::cout << "Client " << fd << " already removed or doesn't exist" << std::endl;
+        close(fd);  // Fermer le fd au cas où
+        return;
+    }
+      std::cout << "Cleaning up client " << disconnectedClient->getNickname() << " (fd:" << fd << ")" << std::endl;
     if (disconnectedClient) {
+        
         // Notifier tous les canaux MAIS vérifier chaque fd avant d'envoyer
         for (size_t i = 0; i < channels.size(); i++) {
             if (channels[i].isClientInChannel(fd)) {
