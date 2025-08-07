@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/14 19:05:10 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 16:54:13 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 11:36:25 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@ class Client {
         std::string Nickname; // Nickname of the client
         std::string Username; // Username of the client
         std::string Realname; // Real name of the client
+        std::string commandBuffer;
         bool authenticated; // Authentication status of the client
         bool registered; // Registration status of the client
     public:
@@ -51,7 +52,28 @@ class Client {
         const std::string& ip() const { return IP; } // Getter for IP address
         void setFd(int fd) { Fd = fd; } // Setter for file descriptor
         void setIP(const std::string &ip) { IP = ip; } // Setter for IP address
-
+        void addToBuffer(const std::string& data) {
+            commandBuffer += data;
+        }
+        
+        bool extractCommand(std::string& command) {
+            size_t pos = commandBuffer.find("\r\n");
+            if (pos == std::string::npos) {
+                pos = commandBuffer.find("\n");
+            }
+            
+            if (pos != std::string::npos) {
+                command = commandBuffer.substr(0, pos);
+                // PROBLÈME: Si on trouve \r\n, on doit enlever 2 caractères, pas 1
+                if (commandBuffer.substr(pos, 2) == "\r\n") {
+                    commandBuffer = commandBuffer.substr(pos + 2);
+                } else {
+                    commandBuffer = commandBuffer.substr(pos + 1);
+                }
+                return true;
+            }
+            return false;
+        }
         // Authentication methods
         bool isAuthenticated() const { return authenticated; }
         bool isRegistered() const { return registered; }

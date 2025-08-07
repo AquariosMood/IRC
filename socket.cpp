@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/07/16 16:44:27 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 11:57:19 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,6 +86,12 @@ void Server::AcceptNewClient()
         return;
     }
     
+    if (fcntl(connectedFd, F_SETFL, O_NONBLOCK) < 0) {
+        std::cerr << "Error setting client socket to non-blocking" << std::endl;
+        close(connectedFd);
+        return;
+    }
+    
     // Create and add new client to the clients vector
     Client newClient;
     newClient.setFd(connectedFd);
@@ -148,15 +154,17 @@ void Server::ReceiveNewData(int fd)
 
     buffer[bytesRead] = '\0'; // -> Null-terminate the received data
     
-    // Check if client exists before using it
     if (client) {
-    //    std::cout << client->getNickname() << ": " << buffer << std::endl;
-        // Parse the received command
-        parseCommand(std::string(buffer), fd);
+        // Ajouter les données reçues au buffer du client
+        client->addToBuffer(std::string(buffer));
+        
+        // Traiter toutes les commandes complètes dans le buffer
+        std::string completeCommand;
+        while (client->extractCommand(completeCommand)) {
+            parseCommand(completeCommand, fd);
+        }
     } else {
         std::cerr << "Error: Client with fd " << fd << " not found in clients list" << std::endl;
-        std::cout << "Unknown client <" << fd << ">: " << buffer << std::endl;
-        // Still parse the command, but without client context
         parseCommand(std::string(buffer), fd);
     }
 }
@@ -178,38 +186,71 @@ void Server::SendData(int fd)
     }
 }
 
-void Server::ServerInit()
-{
-    SerSocket(); // -> Create the server socket
+void Server::ServerInit() {
+    SerSocket();
 
     std::cout << "Server is running on port: " << Port << std::endl;
     std::cout << "Waiting to accept a connection..." << std::endl;
-     // Je ne comprends pas encore comment fonctionne poll(), je voulais surtout appeler la fonction AcceptNewClient() quand un client se connecte
-    while (!Server::Signal)
-    {
-        if (poll(&fds[0], fds.size(), -1) < 0 && !Server::Signal)
+    
+    while (!Server::Signal) {
+        // Timeout de 1 seconde au lieu de -1 (infini)
+        if (poll(&fds[0], fds.size(), 1000) < 0 && !Server::Signal)
             throw(std::runtime_error("poll() failed"));
         
-        for (size_t i = 0; i < fds.size(); i++)
-        {
-            if (fds[i].revents & POLLIN)
-            {
+        for (size_t i = 0; i < fds.size(); i++) {
+            if (fds[i].revents & POLLIN) {
                 if (fds[i].fd == SerSocketFd)
-                    AcceptNewClient(); // -> Accept a new client connection
+                    AcceptNewClient();
                 else
-                    ReceiveNewData(fds[i].fd); // -> Receive data from the client
+                    ReceiveNewData(fds[i].fd);
             }
         }
     }
 }
 
-void Server::ClearClients(int fd){ //-> clear the clients
-	for(size_t i = 0; i < fds.size(); i++){ //-> remove the client from the pollfd
-		if (fds[i].fd == fd)
-			{fds.erase(fds.begin() + i); break;}
-	}
-	for(size_t i = 0; i < clients.size(); i++){ //-> remove the client from the vector of clients
-		if (clients[i].getFd() == fd)
-			{clients.erase(clients.begin() + i); break;}
-	}
+
+void Server::ClearClients(int fd) {
+    Client* disconnectedClient = getClientByFd(fd);
+    
+    if (disconnectedClient) {
+        // Notifier tous les canaux MAIS vérifier chaque fd avant d'envoyer
+        for (size_t i = 0; i < channels.size(); i++) {
+            if (channels[i].isClientInChannel(fd)) {
+                const std::vector<int>& clientFds = channels[i].getClientFds();
+                for (size_t j = 0; j < clientFds.size(); j++) {
+                    if (clientFds[j] != fd) {
+                        // Vérifier que le fd est encore valide avant d'envoyer
+                        struct pollfd pfd;
+                        pfd.fd = clientFds[j];
+                        pfd.events = POLLOUT;
+                        pfd.revents = 0;
+                        
+                        if (poll(&pfd, 1, 0) >= 0 && !(pfd.revents & (POLLHUP | POLLERR | POLLNVAL))) {
+                            sendIRCReply(clientFds[j], ":" + disconnectedClient->getNickname() + "!" + disconnectedClient->getUsername() + "@localhost QUIT :Client disconnected");
+                        }
+                    }
+                }
+                channels[i].removeClient(fd);
+            }
+        }
+    }
+    
+    // Retirer de pollfd
+    for (size_t i = 0; i < fds.size(); i++) {
+        if (fds[i].fd == fd) {
+            fds.erase(fds.begin() + i);
+            break;
+        }
+    }
+    
+    // Retirer de clients
+    for (size_t i = 0; i < clients.size(); i++) {
+        if (clients[i].getFd() == fd) {
+            clients.erase(clients.begin() + i);
+            break;
+        }
+    }
+    
+    close(fd);
+    std::cout << "Client " << fd << " properly removed from server" << std::endl;
 }

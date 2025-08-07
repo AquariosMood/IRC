@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:08:29 by crios             #+#    #+#             */
-/*   Updated: 2025/07/17 12:59:28 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 11:46:24 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,7 @@ void Server::parseCommand(const std::string& message, int fd)
     Client* client = getClientByFd(fd);
     if (!client) {
         std::cerr << "Error: Client with fd " << fd << " not found" << std::endl;
+        ClearClients(fd); // Clean up if client not found
         return;
     }
     // Trim whitespace and check for empty commands

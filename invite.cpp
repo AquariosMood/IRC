@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/17 12:50:49 by crios             #+#    #+#             */
-/*   Updated: 2025/07/17 13:07:20 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 11:47:53 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,10 +39,13 @@ void Server::handleInvite(Client* client, std::istringstream& iss) {
         return;
     }
 
-    // Check if channel is invite-only
-    if (channel->isInviteOnly() && !channel->isOperator(client->getFd())) {
-        sendIRCReply(client->getFd(), ":localhost 482 " + client->getNickname() + " " + channelName + " :You're not channel operator");
-        return;
+    // CLARIFICATION: Vérifier les privilèges selon le mode du canal
+    if (channel->isInviteOnly()) {
+        // Si le canal est invite-only (+i), seuls les opérateurs peuvent inviter
+        if (!channel->isOperator(client->getFd())) {
+            sendIRCReply(client->getFd(), ":localhost 482 " + client->getNickname() + " " + channelName + " :You're not channel operator");
+            return;
+        }
     }
 
     // Find the target client

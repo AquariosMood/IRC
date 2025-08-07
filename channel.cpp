@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:12:33 by crios             #+#    #+#             */
-/*   Updated: 2025/07/17 12:44:53 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 11:41:21 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -486,7 +486,7 @@ void Server::handleKick(Client* client, std::istringstream& iss) {
         return;
     }
 
-    // Check if the target is an operator
+    // Check if the kicker is an operator
     if (!channel->isOperator(client->getFd())) {
         sendIRCReply(client->getFd(), ":localhost 482 " + client->getNickname() + " " + channelName + " :You're not channel operator");
         return;
@@ -523,17 +523,16 @@ void Server::handleKick(Client* client, std::istringstream& iss) {
         reason = "You have been kicked from the channel by " + client->getNickname();
     }
     
-
-    // Notify all clients in the channel about the kick
+    // Notify ALL clients in the channel about the kick (including the kicker)
     const std::vector<int>& clientFds = channel->getClientFds();
-    for (size_t i = 0; i < clientFds.size(); i++)
-    {
-        if (clientFds[i] != client->getFd()) {
-            sendIRCReply(clientFds[i], ":" + client->getNickname() + "!" + client->getUsername() + "@localhost KICK " + channelName + " " + targetNickname + " :" + reason);
-        }
+    std::string kickMessage = ":" + client->getNickname() + "!" + client->getUsername() + "@localhost KICK " + channelName + " " + targetNickname + " :" + reason;
+    
+    for (size_t i = 0; i < clientFds.size(); i++) {
+        sendIRCReply(clientFds[i], kickMessage);
     }
     
-    // Remove the target client from the channel
+    // Remove the target client from the channel AFTER sending notifications
     channel->removeClient(targetClient->getFd());
+    
     std::cout << "Client " << targetNickname << " kicked from " << channelName << " by " << client->getNickname() << ": " << reason << std::endl;
 }
