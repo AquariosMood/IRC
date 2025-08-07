@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 17:57:53 by crios             #+#    #+#             */
-/*   Updated: 2025/08/07 12:44:44 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 16:43:35 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,6 @@ void Server::handlePass(Client* client, std::istringstream& iss) {
     } else {
         sendIRCReply(client->getFd(), ":localhost 464 * :Password incorrect");
         std::cout << "Client " << client->getFd() << " failed authentication" << std::endl;
-        ClearClients(client->getFd()); // Disconnect on wrong password
     }
 }
 
