@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/08/07 11:57:19 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 12:43:11 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,17 +97,15 @@ void Server::AcceptNewClient()
     newClient.setFd(connectedFd);
     newClient.setIP(inet_ntoa(clientAddr.sin_addr));
 
-    std::ostringstream userStream;
-    userStream << "User" << connectedFd;
-    newClient.setUsername(userStream.str());
-    
-    std::ostringstream nickStream;
-    nickStream << "Guest" << connectedFd;
-    newClient.setNickname(nickStream.str());
+    // ✅ NE PAS définir username/nickname automatiquement !
+    // Laissez vides jusqu'à ce que le client les définisse
+    newClient.setUsername("");        // Vide jusqu'à USER
+    newClient.setNickname("");        // Vide jusqu'à NICK
+    newClient.setAuthenticated(false); // Pas encore authentifié
+    newClient.setRegistered(false);    // Pas encore enregistré
     
     clients.push_back(newClient);
-    std::cout << "New client connected: " << newClient.getUsername() 
-              << " (nickname: " << newClient.getNickname() << ")" << std::endl;
+    std::cout << "New client connected with fd: " << connectedFd << std::endl;
     
     // Add client socket to poll structure
     struct pollfd newPoll;

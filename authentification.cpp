@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 17:57:53 by crios             #+#    #+#             */
-/*   Updated: 2025/07/17 13:05:42 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 12:44:44 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,24 +40,26 @@ void Server::handleNick(Client* client, std::istringstream& iss) {
         return;
     }
     
-    if (!client->isAuthenticated()) {
-        sendIRCReply(client->getFd(), ":localhost 451 * :You have not registered");
-        return;
-    }
     
-    // Check if nickname is already taken
+    // Check if nickname is already taken par AUTRES clients
     for (size_t i = 0; i < clients.size(); i++) {
-        if (clients[i].getFd() != client->getFd() && clients[i].getNickname() == nickname) {
+        if (clients[i].getFd() != client->getFd() && // Exclure le client actuel
+            clients[i].getNickname() == nickname) {
             sendIRCReply(client->getFd(), ":localhost 433 * " + nickname + " :Nickname is already in use");
             return;
         }
     }
     
+    // ✅ Mettre à jour le nickname
+    std::string oldNick = client->getNickname();
     client->setNickname(nickname);
-    std::cout << "Client " << client->getFd() << " nickname set to: " << nickname << std::endl;
     
-    // Check if registration is complete
-    checkRegistration(client);
+    std::cout << "Client " << client->getFd() << " set nickname to '" << nickname << "'" << std::endl;
+    
+    // Vérifier l'enregistrement complet SEULEMENT si authentifié
+    if (client->isAuthenticated()) {
+        checkRegistration(client);
+    }
 }
 
 void Server::handleUser(Client* client, std::istringstream& iss) {

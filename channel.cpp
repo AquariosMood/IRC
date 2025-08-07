@@ -6,7 +6,7 @@
 /*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 18:12:33 by crios             #+#    #+#             */
-/*   Updated: 2025/08/07 11:41:21 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 12:52:48 by crios            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -147,13 +147,19 @@ void Server::handleJoin(Client* client, std::istringstream& iss) {
 }
 
 Channel* Server::createChannel(const std::string& name, Client* creator) {
+    // Create channel object
     Channel newChannel(name, "", "");
+    
+    // Add to vector
     channels.push_back(newChannel);
+    
+    // Get FRESH pointer after push_back
     Channel* channel = &channels.back();
     
-    // Creator becomes operator
-    if (creator)
+    // Now safely add operator
+    if (creator) {
         channel->addOperator(creator->getFd());
+    }
     
     return channel;
 }
@@ -174,10 +180,17 @@ void Server::notifyChannelJoin(Client* client, Channel* channel) {
 }
 
 void Server::sendChannelInfo(Client* client, Channel* channel) {
-    if (!client || !channel) return;
+    if (!client || !channel) {
+        std::cout << "ERROR: Null client or channel in sendChannelInfo" << std::endl;
+        return;
+    }
+    
+    std::cout << "DEBUG: sendChannelInfo for channel " << channel->getName() << std::endl;
     
     std::string nick = client->getNickname();
     std::string channelName = channel->getName();
+    
+    std::cout << "DEBUG: About to send topic" << std::endl;
     
     // Send topic
     if (!channel->getTopic().empty()) {
@@ -186,28 +199,48 @@ void Server::sendChannelInfo(Client* client, Channel* channel) {
         sendIRCReply(client->getFd(), ":localhost 331 " + nick + " " + channelName + " :No topic is set");
     }
     
-    // Build names list
+    std::cout << "DEBUG: About to build names list" << std::endl;
+    
+    // Build names list - WITH PROPER SAFETY CHECKS
     const std::vector<int>& clientFds = channel->getClientFds();
+    std::cout << "DEBUG: Channel has " << clientFds.size() << " clients" << std::endl;
+    
     std::string namesList = ":localhost 353 " + nick + " = " + channelName + " :";
     
+    bool first = true;
     for (size_t i = 0; i < clientFds.size(); i++) {
+        std::cout << "DEBUG: Processing client fd " << clientFds[i] << std::endl;
+        
         Client* channelClient = getClientByFd(clientFds[i]);
-        if (!channelClient) continue;
+        if (!channelClient) {
+            std::cout << "ERROR: getClientByFd returned NULL for fd " << clientFds[i] << std::endl;
+            continue;
+        }
+        
+        std::cout << "DEBUG: Found client " << channelClient->getNickname() << std::endl;
+        
+        if (channelClient->getNickname().empty()) {
+            std::cout << "WARNING: Client " << clientFds[i] << " has empty nickname" << std::endl;
+            continue;
+        }
+        
+        if (!first) {
+            namesList += " ";
+        }
+        first = false;
         
         if (channel->isOperator(clientFds[i])) {
             namesList += "@";
         }
         namesList += channelClient->getNickname();
-        if (i < clientFds.size() - 1) {
-            namesList += " ";
-        }
     }
     
+    std::cout << "DEBUG: About to send names list: " << namesList << std::endl;
     sendIRCReply(client->getFd(), namesList);
     sendIRCReply(client->getFd(), ":localhost 366 " + nick + " " + channelName + " :End of /NAMES list");
+    std::cout << "DEBUG: sendChannelInfo completed" << std::endl;
 }
 
-// Add these implementations to the end of your channel.cpp file:
 
 void Channel::addClient(int clientFd) {
     if (!isClientInChannel(clientFd)) {
