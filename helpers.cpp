@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   helpers.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
+/*   By: varodrig <varodrig@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/15 17:59:13 by crios             #+#    #+#             */
-/*   Updated: 2025/08/07 11:49:53 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 15:50:41 by varodrig         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,21 +22,7 @@ Client* Server::getClientByFd(int fd) {
 }
 
 void Server::sendIRCReply(int fd, const std::string& reply) {
-    // Check if fd is ready for writing
-    struct pollfd pfd;
-    pfd.fd = fd;
-    pfd.events = POLLOUT;
-    pfd.revents = 0;
-    
-    int poll_result = poll(&pfd, 1, 0); // Non-blocking check
-    if (poll_result <= 0 || !(pfd.revents & POLLOUT)) {
-        // Si poll() échoue, le fd pourrait être fermé
-        if (poll_result < 0 || (pfd.revents & (POLLHUP | POLLERR | POLLNVAL))) {
-            return;
-        }
-        std::cerr << "Warning: fd " << fd << " not ready for writing, trying anyway" << std::endl;
-    }
-    
+    // Envoyer directement sans validation poll() - l'erreur sera gérée par send()
     std::string message = reply + "\r\n";
     ssize_t bytes_sent = send(fd, message.c_str(), message.length(), 0);
     if (bytes_sent < 0) {

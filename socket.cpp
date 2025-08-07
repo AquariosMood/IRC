@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   socket.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: crios <crios@student.42.fr>                +#+  +:+       +#+        */
+/*   By: varodrig <varodrig@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 13:02:42 by crios             #+#    #+#             */
-/*   Updated: 2025/08/07 12:43:11 by crios            ###   ########.fr       */
+/*   Updated: 2025/08/07 15:50:43 by varodrig         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -217,15 +217,8 @@ void Server::ClearClients(int fd) {
                 const std::vector<int>& clientFds = channels[i].getClientFds();
                 for (size_t j = 0; j < clientFds.size(); j++) {
                     if (clientFds[j] != fd) {
-                        // Vérifier que le fd est encore valide avant d'envoyer
-                        struct pollfd pfd;
-                        pfd.fd = clientFds[j];
-                        pfd.events = POLLOUT;
-                        pfd.revents = 0;
-                        
-                        if (poll(&pfd, 1, 0) >= 0 && !(pfd.revents & (POLLHUP | POLLERR | POLLNVAL))) {
-                            sendIRCReply(clientFds[j], ":" + disconnectedClient->getNickname() + "!" + disconnectedClient->getUsername() + "@localhost QUIT :Client disconnected");
-                        }
+                        // Envoyer directement sans validation poll() - l'erreur sera gérée automatiquement
+                        sendIRCReply(clientFds[j], ":" + disconnectedClient->getNickname() + "!" + disconnectedClient->getUsername() + "@localhost QUIT :Client disconnected");
                     }
                 }
                 channels[i].removeClient(fd);
